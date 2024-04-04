@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="website.chatx.repositories.mybatis.UserChannelMybatisRepository">
+
+    <select id="countListMember" parameterType="website.chatx.dto.prt.userchannel.GetListMemberPrt"
+            resultType="java.lang.Long">
+        /* UserChannelMybatisRepository.countListMember */
+        select count(1)
+        from user_channel uc1
+            join channel c1 on (uc1.channel_id = c1.id and c1.id = #{channelId})
+            join user_channel uc2 on (c1.id = uc2.channel_id and uc2.user_id = #{userId} and uc2.status = 'ACCEPT')
+            join user u1
+                on (uc1.user_id = u1.id
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+                    and (u1.name like #{pattern} or u1.email like #{pattern})
+        </if>
+        <if test="status != null">
+                    and uc1.status = #{status}
+        </if>
+                    )
+    </select>
+
+    <select id="getListMember" parameterType="website.chatx.dto.prt.userchannel.GetListMemberPrt"
+            resultType="website.chatx.dto.rss.userchannel.list.ListMemberRss">
+        /* UserChannelMybatisRepository.getListMember */
+        select  u1.id           id,
+                u1.email        email,
+                u1.name         name,
+                u1.avatar_url   avatarUrl,
+                uc1.status      status
+        from user_channel uc1
+            join channel c1 on (uc1.channel_id = c1.id and c1.id = #{channelId})
+            join user_channel uc2 on (c1.id = uc2.channel_id and uc2.user_id = #{userId} and uc2.status = 'ACCEPT')
+            join user u1 on (uc1.user_id = u1.id
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+            and (u1.name like #{pattern} or u1.email like #{pattern})
+        </if>
+        <if test="status != null">
+            and uc1.status = #{status}
+        </if>
+                            )
+        order by u1.name asc
+        limit #{offset}, #{limit}
+    </select>
+
+</mapper>

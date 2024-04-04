@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="website.chatx.repositories.mybatis.MessageMybatisRepository">
+
+    <select id="countListMessage" parameterType="website.chatx.dto.prt.message.GetListMessagePrt"
+            resultType="java.lang.Long">
+        /* MessageMybatisRepository.countListMessage */
+        select count(1)
+        from message m1
+            join channel c1
+                on (m1.channel_id = c1.id
+                    and c1.id = #{channelId}
+        <if test="content != ''">
+            <bind name="pattern" value="'%' + content + '%'"/>
+                    and m1.content like #{pattern}
+        </if>
+        )
+            join user_channel uc1 on (c1.id = uc1.channel_id and uc1.user_id = #{userId} and uc1.status = 'ACCEPT')
+    </select>
+
+    <select id="getListMessage" parameterType="website.chatx.dto.prt.message.GetListMessagePrt"
+            resultMap="getListMessageResultMap">
+        /* MessageMybatisRepository.getListMessage */
+        select  m1.id               id,
+                m1.content          content,
+                m1.created_at       createdAt,
+                m1.updated_at       updatedAt,
+
+                u1.id               senderId,
+                u1.email            senderEmail,
+                u1.name             senderName,
+                u1.avatar_url       senderAvatarUrl,
+
+                mf1.id              fileId,
+                mf1.name            fileName,
+                mf1.url             fileUrl,
+                mf1.content_type    fileContentType,
+                mf1.size            fileSize,
+                mf1.created_at      fileCreatedAt,
+                mf1.updated_at      fileUpdatedAt
+        from message m1
+                 join channel c1
+                      on (m1.channel_id = c1.id
+                          and c1.id = #{channelId}
+        <if test="content != ''">
+            <bind name="pattern" value="'%' + content + '%'"/>
+            and m1.content like #{pattern}
+        </if>
+                          )
+                 join user_channel uc1 on (c1.id = uc1.channel_id and uc1.user_id = #{userId} and uc1.status = 'ACCEPT')
+                 left join user u1 on (m1.sender_id = u1.id)
+                 left join message_file mf1 on (m1.id = mf1.message_id)
+        order by m1.created_at desc
+        limit #{offset}, #{limit}
+    </select>
+
+    <resultMap id="getListMessageResultMap" type="website.chatx.dto.rss.message.list.ListMessageRss">
+        <result property="id" column="id"/>
+        <result property="content" column="content"/>
+        <result property="createdAt" column="createdAt"/>
+        <result property="updatedAt" column="updatedAt"/>
+        <result property="senderId" column="senderId"/>
+        <result property="senderEmail" column="senderEmail"/>
+        <result property="senderName" column="senderName"/>
+        <result property="senderAvatarUrl" column="senderAvatarUrl"/>
+        <collection property="files" ofType="website.chatx.dto.rss.message.list.FileRss">
+            <result property="fileId" column="fileId"/>
+            <result property="fileName" column="fileName"/>
+            <result property="fileUrl" column="fileUrl"/>
+            <result property="fileContentType" column="fileContentType"/>
+            <result property="fileSize" column="fileSize"/>
+            <result property="fileCreatedAt" column="fileCreatedAt"/>
+            <result property="fileUpdatedAt" column="fileUpdatedAt"/>
+        </collection>
+    </resultMap>
+
+</mapper>

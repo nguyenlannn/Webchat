@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="website.chatx.repositories.mybatis.UserMybatisRepository">
+
+    <select id="getOneUserToAddFriend" parameterType="website.chatx.dto.prt.user.GetOneUserToAddFriendPrt"
+            resultType="website.chatx.dto.rss.user.OneUserToAddFriendRss">
+        /* UserMybatisRepository.getOneUserToAddFriend */
+        select u1.id         id,
+               u1.email      email,
+               u1.name       name,
+               u1.avatar_url avatarUrl,
+               uc1.status    status
+        from user u1
+                 left join user_channel uc1
+                      on (u1.id = uc1.user_id
+                          and uc1.channel_id in (
+                              select c1.id
+                              from channel c1
+                                join user_channel uc2
+                                    on (c1.id = uc2.channel_id and uc2.user_id = #{userId} and c1.type = 'FRIEND')
+                                join user_channel uc3
+                                    on (c1.id = uc3.channel_id and uc3.user_id != #{userId} and c1.type = 'FRIEND')
+                                join user u2
+                                    on (uc3.user_id = u2.id and u2.email in
+        <foreach item="item" index="index" collection="list"
+                 open=" (" separator="," close=")" nullable="true">
+            #{item}
+        </foreach>
+                                        )
+                              )
+                          )
+        <where>
+            u1.id != #{userId}
+            and u1.email in
+            <foreach item="item" index="index" collection="list"
+                     open=" (" separator="," close=")" nullable="true">
+                #{item}
+            </foreach>
+            and u1.is_activated = 1
+        </where>
+    </select>
+
+    <select id="countListFriendToAddGroup" parameterType="website.chatx.dto.prt.user.GetListFriendToAddGroupPrt"
+            resultType="java.lang.Long">
+        /* UserMybatisRepository.countListFriendToAddGroup */
+        select count(1)
+        from channel c1
+            join user_channel uc1 on (c1.id = uc1.channel_id and uc1.user_id = #{userId} and uc1.status = 'ACCEPT' and c1.type = 'FRIEND')
+            join user_channel uc2 on (c1.id = uc2.channel_id and uc2.user_id != #{userId} and uc2.status = 'ACCEPT' and c1.type = 'FRIEND')
+            join user u1 on (uc2.user_id = u1.id
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+                            and (u1.name like #{pattern} or u1.email like #{pattern})
+        </if>
+                            )
+
+    </select>
+
+    <select id="getListFriendToAddGroup" parameterType="website.chatx.dto.prt.user.GetListFriendToAddGroupPrt"
+            resultType="website.chatx.dto.rss.user.ListFriendToAddGroupRss">
+        /* UserMybatisRepository.getListFriendToAddGroup */
+        select  u1.id         id,
+                u1.email      email,
+                u1.name       name,
+                u1.avatar_url avatarUrl,
+
+                uc3.status      status
+        from channel c1
+            join user_channel uc1 on (c1.id = uc1.channel_id and uc1.user_id = #{userId} and uc1.status = 'ACCEPT' and c1.type = 'FRIEND')
+            join user_channel uc2 on (c1.id = uc2.channel_id and uc2.user_id != #{userId} and uc2.status = 'ACCEPT' and c1.type = 'FRIEND')
+            join user u1 on (uc2.user_id = u1.id
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+                            and (u1.name like #{pattern} or u1.email like #{pattern})
+        </if>
+                            )
+            left join user_channel uc3 on (u1.id = uc3.user_id and uc3.channel_id = #{channelId} and uc3.channel_id != c1.id)
+        order by u1.name asc
+        limit #{offset}, #{limit}
+    </select>
+
+</mapper>

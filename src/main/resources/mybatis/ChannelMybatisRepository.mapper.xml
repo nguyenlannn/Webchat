@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="website.chatx.repositories.mybatis.ChannelMybatisRepository">
+
+    <select  id="countListChannel" parameterType="website.chatx.dto.prt.channel.GetListChannelPrt"
+            resultType="java.lang.Long">
+        /* ChannelMybatisRepository.countListChannel */
+        select count(1)
+        from channel c1
+                 join user_channel uc1
+                      on (c1.id = uc1.channel_id
+                          and uc1.user_id = #{userId}
+        <if test="status != null">
+                            and uc1.status = #{status}
+        </if>
+                          )
+    </select>
+
+    <select id="getListChannel" parameterType="website.chatx.dto.prt.channel.GetListChannelPrt"
+            resultType="website.chatx.dto.rss.channel.ListChannelRss">
+        /* ChannelMybatisRepository.getListChannel */
+        select c1.id         id,
+               c1.name       name,
+               c1.avatar_url avatarUrl,
+               c1.type       type,
+               c1.created_at createdAt,
+               c1.updated_at updatedAt,
+
+               uc1.status   status,
+
+                uc2.status friendStatus,
+
+               u1.id         friendId,
+               u1.email      friendEmail,
+               u1.name       friendName,
+               u1.avatar_url friendAvatarUrl,
+
+               m1.id         currentMessageId,
+               m1.content    currentMessageContent,
+               m1.created_at currentMessageCreatedAt,
+               m1.updated_at currentMessageUpdatedAt,
+
+               u2.id         senderCurrentMessageId,
+               u2.email      senderCurrentMessageEmail,
+               u2.name       senderCurrentMessageName,
+               u2.avatar_url senderCurrentMessageAvatarUrl
+        from channel c1
+                 join user_channel uc1
+                     on (c1.id = uc1.channel_id
+                        and uc1.user_id = #{userId}
+        <if test="status != null">
+                        and uc1.status = #{status}
+        </if>
+                    )
+                 left join user_channel uc2
+                           on (c1.id = uc2.channel_id and uc2.user_id != #{userId} and c1.type = 'FRIEND')
+                 left join user u1 on (uc2.user_id = u1.id)
+                 left join message m1
+                           on (c1.id = m1.channel_id
+                               and if(uc1.status = 'ACCEPT', 1, m1.id is null)
+                               and m1.id = (select m2.id
+                                            from channel c2
+                                                     join message m2 on (c2.id = m2.channel_id and c2.id = c1.id)
+                                            order by m2.created_at desc
+                               limit 1
+                               ) )
+                left join user u2 on (m1.sender_id = u2.id)
+        order by m1.created_at desc
+        limit #{offset}, #{limit}
+    </select>
+
+    <select id="countListFriend" parameterType="website.chatx.dto.prt.channel.GetListChannelPrt"
+            resultType="java.lang.Long">
+        /* ChannelMybatisRepository.countListFriend */
+        select count(1)
+        from channel c1
+            join user_channel uc1
+                on (c1.id = uc1.channel_id
+                    and uc1.user_id = #{userId}
+                    and c1.type = 'FRIEND'
+        <if test="status != null">
+                    and uc1.status = #{status}
+        </if>
+                )
+            join user_channel uc2 on (c1.id = uc2.channel_id and uc2.user_id != #{userId} and c1.type = 'FRIEND')
+            join user u1 on (uc2.user_id = u1.id
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+                and (u1.name like #{pattern} or u1.email like #{pattern})
+        </if>
+        )
+    </select>
+
+    <select id="getListFriend" parameterType="website.chatx.dto.prt.channel.GetListChannelPrt"
+            resultType="website.chatx.dto.rss.channel.ListChannelRss">
+        /* ChannelMybatisRepository.getListFriend */
+        select c1.id         id,
+               c1.name       name,
+               c1.avatar_url avatarUrl,
+               c1.type       type,
+                c1.created_at createdAt,
+                c1.updated_at updatedAt,
+
+                uc1.status   status,
+
+                uc2.status friendStatus,
+
+               u1.id         friendId,
+               u1.email      friendEmail,
+               u1.name       friendName,
+               u1.avatar_url friendAvatarUrl,
+
+                m1.id currentMessageId,
+                m1.content currentMessageContent,
+                m1.created_at currentMessageCreatedAt,
+                m1.updated_at currentMessageUpdatedAt,
+
+               u2.id         senderCurrentMessageId,
+               u2.email      senderCurrentMessageEmail,
+               u2.name       senderCurrentMessageName,
+               u2.avatar_url senderCurrentMessageAvatarUrl
+        from channel c1
+                 join user_channel uc1
+                     on (c1.id = uc1.channel_id
+                        and uc1.user_id = #{userId}
+                        and c1.type = 'FRIEND'
+        <if test="status != null">
+                        and uc1.status = #{status}
+        </if>
+                    )
+                 join user_channel uc2 on (c1.id = uc2.channel_id and uc2.user_id != #{userId} and c1.type = 'FRIEND')
+                 join user u1 on (uc2.user_id = u1.id
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+                                    and (u1.name like #{pattern} or u1.email like #{pattern})
+        </if>
+                                )
+                 left join message m1
+                        on (c1.id = m1.channel_id
+                            and if(uc1.status = 'ACCEPT', 1, m1.id is null)
+                            and m1.id = (select m2.id
+                                        from channel c2
+                                            join message m2 on (c2.id = m2.channel_id and c2.id = c1.id)
+                                        order by m2.created_at desc
+                                        limit 1
+                                        )
+                            )
+                left join user u2 on (m1.sender_id = u2.id)
+        order by m1.created_at desc
+        limit #{offset}, #{limit}
+    </select>
+
+    <select id="countListGroup" parameterType="website.chatx.dto.prt.channel.GetListChannelPrt"
+            resultType="java.lang.Long">
+        /* ChannelMybatisRepository.countListGroup */
+        select count(1)
+        from channel c1
+            join user_channel uc1
+                on (c1.id = uc1.channel_id
+                    and uc1.user_id = #{userId}
+                    and c1.type = 'GROUP'
+        <if test="status != null">
+                    and uc1.status = #{status}
+        </if>
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+            and c1.name like #{pattern}
+        </if>
+                )
+    </select>
+
+    <select id="getListGroup" parameterType="website.chatx.dto.prt.channel.GetListChannelPrt"
+            resultType="website.chatx.dto.rss.channel.ListChannelRss">
+        /* ChannelMybatisRepository.getListGroup */
+        select c1.id         id,
+               c1.name       name,
+               c1.avatar_url avatarUrl,
+               c1.type       type,
+                c1.created_at createdAt,
+                c1.updated_at updatedAt,
+
+                uc1.status   status,
+
+                m1.id         currentMessageId,
+                m1.content    currentMessageContent,
+                m1.created_at currentMessageCreatedAt,
+                m1.updated_at currentMessageUpdatedAt,
+
+               u2.id         senderCurrentMessageId,
+               u2.email      senderCurrentMessageEmail,
+               u2.name       senderCurrentMessageName,
+               u2.avatar_url senderCurrentMessageAvatarUrl
+        from channel c1
+                 join user_channel uc1
+                      on (c1.id = uc1.channel_id
+                            and uc1.user_id = #{userId}
+                            and c1.type = 'GROUP'
+        <if test="status != null">
+            and uc1.status = #{status}
+        </if>
+        <if test="search != ''">
+            <bind name="pattern" value="'%' + search + '%'"/>
+                            and c1.name like #{pattern}
+        </if>
+                          )
+                 left join message m1
+                           on (c1.id = m1.channel_id
+                               and if(uc1.status = 'ACCEPT', 1, m1.id is null)
+                               and m1.id = (select m2.id
+                                            from channel c2
+                                                     join message m2 on (c2.id = m2.channel_id and c2.id = c1.id)
+                                            order by m2.created_at desc
+                               limit 1
+                               ) )
+                left join user u2 on (m1.sender_id = u2.id)
+        order by m1.created_at desc
+        limit #{offset}, #{limit}
+    </select>
+
+    <select id="getDetailChannel" parameterType="website.chatx.dto.prt.channel.GetDetailChannelPrt"
+            resultType="website.chatx.dto.rss.channel.DetailChannelRss">
+        /* ChannelMybatisRepository.getDetailChannel */
+        select c1.id         id,
+               c1.owner_id   ownerId,
+               c1.name       name,
+               c1.avatar_url avatarUrl,
+               c1.type       type,
+               c1.created_at createdAt,
+               c1.updated_at updatedAt,
+
+               uc1.status    status,
+
+            uc2.status friendStatus,
+
+               u1.id         friendId,
+               u1.email      friendEmail,
+               u1.name       friendName,
+               u1.avatar_url friendAvatarUrl
+        from channel c1
+                 join user_channel uc1 on (c1.id = uc1.channel_id and c1.id = #{channelId} and uc1.user_id = #{userId})
+                 left join user_channel uc2
+                           on (c1.id = uc2.channel_id and uc2.user_id != #{userId} and c1.type = 'FRIEND')
+                 left join user u1 on (uc2.user_id = u1.id)
+    </select>
+
+</mapper>

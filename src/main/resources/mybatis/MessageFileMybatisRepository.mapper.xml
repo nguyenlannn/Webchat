@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="website.chatx.repositories.mybatis.MessageFileMybatisRepository">
+
+    <select id="countListFile" parameterType="website.chatx.dto.prt.messagefile.GetListFilePrt"
+            resultType="java.lang.Long">
+        /* MessageFileMybatisRepository.countListFile */
+        select count(1)
+        from message_file mf1
+            join channel c1
+                on (mf1.channel_id = c1.id
+                    and c1.id = #{channelId}
+        <if test="name != ''">
+            <bind name="pattern" value="'%' + name + '%'"/>
+                    and mf1.name like #{pattern}
+        </if>
+        )
+            join user_channel uc1 on (c1.id = uc1.channel_id and uc1.user_id = #{userId} and uc1.status = 'ACCEPT')
+    </select>
+
+    <select id="getListFile" parameterType="website.chatx.dto.prt.messagefile.GetListFilePrt"
+            resultType="website.chatx.dto.rss.messagefile.list.ListFileRss">
+        /* MessageFileMybatisRepository.getListFile */
+        select  mf1.id              id,
+                mf1.name            name,
+                mf1.url             url,
+                mf1.content_type    contentType,
+                mf1.size            size,
+                mf1.created_at      createdAt,
+                mf1.updated_at      updatedAt,
+
+                u1.id               senderId,
+                u1.email            senderEmail,
+                u1.name             senderName,
+                u1.avatar_url        senderAvatarUrl
+        from message_file mf1
+                 join channel c1
+                      on (mf1.channel_id = c1.id
+                          and c1.id = #{channelId}
+        <if test="name != ''">
+            <bind name="pattern" value="'%' + name + '%'"/>
+                            and mf1.name like #{pattern}
+        </if>
+                          )
+                 join user_channel uc1 on (c1.id = uc1.channel_id and uc1.user_id = #{userId} and uc1.status = 'ACCEPT')
+                 left join user u1 on (mf1.sender_id = u1.id)
+        order by mf1.created_at desc
+        limit #{offset}, #{limit}
+    </select>
+
+</mapper>
